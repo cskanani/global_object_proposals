@@ -213,8 +213,22 @@ class DataLoader(data.Dataset):
         dir = os.path.join(self.input_box_dir,split)
         feats = np.load(os.path.join(dir,id + '.npy'))
         assert feats.shape[0] >= 3 * sent_num, 'weird feature for %s' % id
+        
+        if self.opt.use_global_objects:
+            global_feats = feats[:, :]
+            feats_div = feats[:, :]
+            global_feats = np.sum(global_feats, axis = 0)
+            feats_div[feats_div > 0] = 1.0
+            feats_div = np.sum(feats_div, axis = 0)
+            feats_div[feats_div == 0] = 1.0
+            global_feats = global_feats / feats_div
+            global_feats = np.expand_dims(global_feats, axis=0)
+        
         for i in range(sent_num):
-            box_features.append(feats[i*self.nbox:(i+1)*self.nbox])
+            local_feats = feats[i*self.nbox:(i+1)*self.nbox]
+            if self.opt.use_global_objects:
+                local_feats = np.r_[local_feats, global_feats] # concatenating global object information
+            box_features.append(local_feats)
         return box_features
 
     def set_negatives(self,mode):
@@ -230,12 +244,21 @@ class DataLoader(data.Dataset):
         sent_num_batch = np.zeros(batch_size, dtype='int')
         fc_batch = np.zeros([batch_size, self.max_sent_num, self.max_seg, self.opt.fc_feat_size], dtype = 'float32')
         img_batch = np.zeros([batch_size, self.max_sent_num, self.max_seg, self.opt.img_feat_size], dtype = 'float32')
-        box_batch = np.zeros([batch_size, self.max_sent_num, self.nbox, self.opt.box_feat_size], dtype = 'float32')
+
+        if self.opt.use_global_objects:
+            box_batch = np.zeros([batch_size, self.max_sent_num, self.nbox + 1, self.opt.box_feat_size], dtype = 'float32')
+        else:
+            box_batch = np.zeros([batch_size, self.max_sent_num, self.nbox, self.opt.box_feat_size], dtype = 'float32')
 
         # negative inputs for discriminator
         mm_fc_batch = np.zeros([batch_size, self.max_sent_num, self.max_seg, self.opt.fc_feat_size], dtype = 'float32')
         mm_img_batch = np.zeros([batch_size, self.max_sent_num, self.max_seg, self.opt.img_feat_size], dtype = 'float32')
-        mm_box_batch = np.zeros([batch_size, self.max_sent_num, self.nbox, self.opt.box_feat_size], dtype = 'float32')
+        
+        if self.opt.use_global_objects:
+            mm_box_batch = np.zeros([batch_size, self.max_sent_num, self.nbox + 1, self.opt.box_feat_size], dtype = 'float32')
+        else:
+            mm_box_batch = np.zeros([batch_size, self.max_sent_num, self.nbox, self.opt.box_feat_size], dtype = 'float32')
+
         act_batch = []
         mm_act_batch = []
         mm_batch = np.zeros((batch_size, self.max_sent_num, self.seq_length + 2), dtype = 'int')

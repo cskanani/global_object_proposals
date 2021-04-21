@@ -244,6 +244,8 @@ def parse_opt():
                     help='an id identifying this run/job. used in cross-val and appended when writing progress files')
     parser.add_argument('--train_only', type=int, default=0,
                     help='if true then use 80k, else use 110k')
+    parser.add_argument('--use_global_objects', type=int, default=0,
+                    help='if 1 adds global objects information in box_feats')
 
     args = parser.parse_args()
 

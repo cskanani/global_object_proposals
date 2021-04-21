@@ -94,6 +94,10 @@ parser.add_argument('--lang_weight', type=float, default=0.2,
 parser.add_argument('--pair_weight', type=float, default=1.0,
                 help='weight for pair discriminator in adversarial inference')
 
+#misc
+parser.add_argument('--use_global_objects', type=int, default=0,
+                help='if 1 adds global objects information in box_feats')
+
 opt = parser.parse_args()
 
 # Load infos
